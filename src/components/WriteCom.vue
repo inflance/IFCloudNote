@@ -1,6 +1,7 @@
 <script>
 import { marked } from 'marked';
 
+let aaa = 0
 export default {
     data() {
         return {
@@ -11,9 +12,9 @@ export default {
             ],
             id: '',
             range: {
-                rangeId:'w0',
-                rangeStart: '', 
-                rangeEnd: ''
+                rangeId: 'w0',
+                rangeStart: 0,
+                rangeEnd: 0
             },
         }
     },
@@ -25,41 +26,55 @@ export default {
         this.$nextTick(() => {
             document.onselectionchange = () => {
                 this.range = {
-                    rangeId:'w0',
-                    rangeStart: '', 
-                    rangeEnd: ''
+                    rangeId: '',
+                    rangeStart: 0,
+                    rangeEnd: 0
                 }
                 const selection = document.getSelection();
+
                 for (let i = 0; i < selection.rangeCount; i++) {
-                    var rangeStart = selection.getRangeAt(i).startOffset
-                    var rangeEnd = selection.getRangeAt(i).endOffset
-                    var rangeId = selection.getRangeAt(i).commonAncestorContainer.parentElement.parentElement.getAttribute('id')
-                    this.range = {rangeId:rangeId, rangeStart:rangeStart, rangeEnd:rangeEnd}
-                    console.log(this.range)
+                    const rangeStart = selection.getRangeAt(i).startOffset
+                    const rangeEnd = selection.getRangeAt(i).endOffset
+                    const rangeId = selection.getRangeAt(i).commonAncestorContainer.parentElement.parentElement.getAttribute('id');
+                    this.range = { rangeId: rangeId, rangeStart: rangeStart, rangeEnd: rangeEnd }
                 }
+
+                this.HandleText();
             }
-            this.nums[this.range.rangeId].nativeText = document.querySelector('#'+this.range.rangeId).firstChild.innerHTML
-            
+            document.onfocus = ()=>{
+
+            }
+
         })
+
     },
     methods: {
-        //添加一行
-        AddLine: function () {
+        GetNumPos: function (id) {
             let i = 0;
             this.nums.forEach((num, index) => {//获取光标所在的数组位置
-                if(num.id === this.range.rangeId){
+                if (num.id === id) {
                     i = index;
                 }
             });
-            //在光标位置后插入一行
-            this.nums.splice(i+1, 0, { id: 'w' + (this.indexOfLine += 2), nativeText: ("## "+ i), translateText: "" })
-            this.Translate();
+            
+            return i;
+        },
+        //添加一行
+        AddLine: function () {
+            if (this.range.rangeId) {
+                let i = this.GetNumPos(this.range.rangeId);
+                //在光标位置后插入一行
+                this.nums.splice(i + 1, 0, { id: 'w' + (this.indexOfLine += 2), nativeText: ('# 0'), translateText: "" })
+                
+                this.Translate();
+            }
+
         },
         //将markdown文本翻译成HTML
         Translate: function () {
             this.nums.forEach((num) => {
-                    num.translateText = marked(num.nativeText);
-                }
+                num.translateText = marked(num.nativeText);
+            }
             )
         },
         //阻止浏览器换行
@@ -69,15 +84,18 @@ export default {
                 return false;
             }
         },
-        Alert: function (id) {
-            this.id = id;
-            alert(id)
-        },
-        getEditableDivFocus: function (id) {
-            this.id = id;
-            alert(id)
-        }, changeE: function () {
-            alert(123)
+        HandleText: function () {
+        
+            let rid = this.range.rangeId
+            if (rid) {
+                
+                let i = this.GetNumPos(rid)
+                this.nums[i].nativeText = document.getElementById(rid).firstChild.textContent;
+                this.Translate();
+                document
+                    .querySelector("#" + rid).lastChild.vHtml = this.nums[i].translateText;
+                }
+
         }
     }
 }
@@ -85,7 +103,7 @@ export default {
 
 <template>
     <div id="write" contenteditable="true" @keyup.enter="AddLine" @keydown="HandlePushKeyword($event)">
-        <p v-for="num in nums" v-bind:id="num.id" contenteditable="true" @change="changeE">
+        <p v-for="num in nums" v-bind:id="num.id" contenteditable="true">
             <span>{{num.nativeText}}</span>
             <span v-html="num.translateText"></span>
         </p>
@@ -94,12 +112,14 @@ export default {
 </template>
 
 <style>
+
 #write {
     background-color: wheat;
     color: rgb(0, 1, 1);
     width: 80vw;
     height: 90vh;
-
+    display: flex;
+    flex-direction: column;
 }
 </style>
 
